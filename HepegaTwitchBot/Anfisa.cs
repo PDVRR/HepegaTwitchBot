@@ -13,10 +13,10 @@ namespace HepegaTwitchBot
         {
             HttpClient client = new HttpClient();
             string json = "{\"ask\":\"" + request + "\",\"userid\":\"hepegabot\",\"key\":\"\"}";
-            List<KeyValuePair<string, string>> fdDictionary = new List<KeyValuePair<string, string>>
+            Dictionary<string, string> fdDictionary = new Dictionary<string, string>
             {
-                new KeyValuePair<string, string>("userid", userid),
-                new KeyValuePair<string, string>("query", json)
+                { "userid", userid },
+                { "query", json }
             };
             HttpContent content = new FormUrlEncodedContent(fdDictionary);
             HttpResponseMessage response = await client.PostAsync("https://aiproject.ru/api/", content);
