@@ -74,9 +74,8 @@ namespace HepegaTwitchBot
             return result;
         }
 
-        public string GetLastGameGgp(string username)
+        public string GetLastGameGgp(ParticipantInfo participantInfo)
         {
-            ParticipantInfo participantInfo = GetParticipantInfo(username);
             int ggp = Convert.ToInt32(participantInfo.NominalGgp);
             string events = participantInfo.Events;
             string procentsPattern = @"((?:\-|\+|\−)\d+)%+";
@@ -129,7 +128,7 @@ namespace HepegaTwitchBot
             Match streak = r.Match(events);
             if (streak.Length != 0)
             {
-                ggp += Convert.ToInt32(streak.Value);
+                ggp += Convert.ToInt32(streak.Groups[1].ToString());
             }
 
             return "Итоговое GGP: " + ggp;

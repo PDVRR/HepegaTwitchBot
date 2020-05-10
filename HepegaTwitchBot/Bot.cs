@@ -123,7 +123,7 @@ namespace HepegaTwitchBot
                 return;
             }
             Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"#{e.SentMessage.Channel,-11} | hepega_bot: {e.SentMessage.Message}");
+            Console.WriteLine($"#{e.SentMessage.Channel,-11} | {Settings.Username} {e.SentMessage.Message}");
             Console.ForegroundColor = ConsoleColor.White;
         }
 
@@ -414,7 +414,7 @@ namespace HepegaTwitchBot
             if (nickname != "null")
             {
                 ParticipantInfo participantInfo = hpgDoc.GetParticipantInfo(nickname);
-                result = $"[{participantInfo.Section}] {participantInfo.Game} [{hpgDoc.GetLastGameGgp(nickname)}]";
+                result = $"[{participantInfo.Section}] {participantInfo.Game} [{hpgDoc.GetLastGameGgp(participantInfo)}]";
             }
             else
             {
