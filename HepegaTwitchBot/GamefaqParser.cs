@@ -3,7 +3,6 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
-using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
 
@@ -28,10 +27,9 @@ namespace HepegaTwitchBot
             game = game.Replace("  ", " ");
             game = game.Replace(" ", "+");
             HttpResponseMessage response = await client.GetAsync(url.Replace("{game}", game));
-            string source = default;
             if (response != null && response.StatusCode == HttpStatusCode.OK)
             {
-                source = await response.Content.ReadAsStringAsync();
+                var source = await response.Content.ReadAsStringAsync();
 
                 HtmlParser domParser = new HtmlParser();
                 IHtmlDocument document = await domParser.ParseDocumentAsync(source);

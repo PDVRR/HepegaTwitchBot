@@ -40,7 +40,7 @@ namespace HepegaTwitchBot
             var rawRows = ReadEntries($"{username}!D13:J");
             for (int i = rawRows.Count - 1; i > 0; i--)
             {
-                if (rawRows[i].Count != 0 && rawRows[i][0] != "" && rawRows[i][1] != "" && rawRows[i][2] != "")
+                if (rawRows[i].Count != 0 && rawRows[i][0].ToString() != "" && rawRows[i][1].ToString() != "" && rawRows[i][2].ToString() != "")
                 {
                     participantInfo.Section = (string) rawRows[i][0];
                     participantInfo.Game = (string) rawRows[i][1];
@@ -67,7 +67,7 @@ namespace HepegaTwitchBot
 
             foreach (var row in rawLeaderboard)
             {
-                result += $"{userPlace}. {row[0]} [{row[7]}] ";
+                result += $"{userPlace}. {row[0]} [{row[7]}]; ";
                 userPlace++;
             }
 
@@ -87,7 +87,7 @@ namespace HepegaTwitchBot
             Match buhgalteryGgp = r.Match(events);
             if (buhgalteryGgp.Length != 0)
             {
-                ggp = Convert.ToInt32(string.Join("", buhgalteryGgp.Value.Where(char.IsDigit)));
+                ggp = Convert.ToInt32(string.Join("", buhgalteryGgp.Groups[1].Value.Where(char.IsDigit)));
             }
 
             r = new Regex(buhgalteryPattern2);
@@ -116,9 +116,9 @@ namespace HepegaTwitchBot
                     }
                 }
 
-                if (procents < 50)
+                if (procents < 40)
                 {
-                    procents = 50;
+                    procents = 40;
                 }
                 double multiplier = (procents / 100.0);
                 ggp = Convert.ToInt32(ggp * (multiplier));
@@ -142,7 +142,7 @@ namespace HepegaTwitchBot
             {
                 if (item.Count != 0)
                 {
-                    result.Add(item[0] != "" ? item[0].ToString() : item[1].ToString());
+                    result.Add(item[0].ToString() != "" ? item[0].ToString() : item[1].ToString());
                 }
             }
             return result;
@@ -151,7 +151,6 @@ namespace HepegaTwitchBot
         static IList<IList<object>> ReadEntries(string range)
         {
             var request = service.Spreadsheets.Values.Get(SpreadsheetId, range);
-
             var response = request.Execute();
             IList<IList<object>> values;
             values = response.Values;

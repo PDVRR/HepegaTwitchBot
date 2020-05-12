@@ -9,7 +9,7 @@ namespace HepegaTwitchBot
         private static readonly string[] DefaultChannels = { "liz0n", "uselessmouth", "unclebjorn", "mistafaker" };
         private static Dictionary<string, Bot> _bots;
         private static bool _exit = false;
-        static void Main(string[] args)
+        static void Main()
         {
             _bots = new Dictionary<string, Bot>();
             ConnectToChannel("defaultchannels");

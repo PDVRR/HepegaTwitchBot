@@ -21,7 +21,7 @@ namespace HepegaTwitchBot
             HttpContent content = new FormUrlEncodedContent(fdDictionary);
             HttpResponseMessage response = await client.PostAsync("https://aiproject.ru/api/", content);
             dynamic jsonResponse = JsonConvert.DeserializeObject(await response.Content.ReadAsStringAsync());
-            if (jsonResponse.aiml == null)
+            if (jsonResponse?.aiml == null)
             {
                 return "произошла непредвиденная ошибка.";
             }

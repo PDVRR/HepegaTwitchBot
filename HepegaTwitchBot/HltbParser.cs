@@ -18,7 +18,6 @@ namespace HepegaTwitchBot
         {
             client = new HttpClient();
             client.DefaultRequestHeaders.Add("User-Agent", "Friendly C# Bot");
-            HttpContent httpContent = new StringContent("");
         }
 
         public async Task<string> ParseGame(string game)
@@ -36,11 +35,10 @@ namespace HepegaTwitchBot
             };
             HttpContent content = new FormUrlEncodedContent(formData);
             HttpResponseMessage response = await client.PostAsync(url, content);
-            string source = default;
 
             if (response != null && response.StatusCode == HttpStatusCode.OK)
             {
-                source = await response.Content.ReadAsStringAsync();
+                var source = await response.Content.ReadAsStringAsync();
                 HtmlParser domParser = new HtmlParser();
                 IHtmlDocument document = await domParser.ParseDocumentAsync(source);
                 List<IElement> items = document.QuerySelectorAll("div")
