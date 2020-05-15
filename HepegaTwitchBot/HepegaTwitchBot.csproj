@@ -99,7 +99,9 @@
     <Compile Include="HpgDocParser.cs" />
     <Compile Include="HpgItems.cs" />
     <Compile Include="Models\Aliases.cs" />
+    <Compile Include="Models\GamefaqStats.cs" />
     <Compile Include="Models\ParticipantInfo.cs" />
+    <Compile Include="Models\ParticipantsStats.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Settings.cs" />

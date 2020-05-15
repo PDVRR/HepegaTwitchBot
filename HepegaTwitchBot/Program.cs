@@ -5,30 +5,31 @@ using System.Threading;
 namespace HepegaTwitchBot
 {
     class Program
-    {
-        private static readonly string[] DefaultChannels = { "liz0n", "uselessmouth", "unclebjorn", "mistafaker" };
+    {//"liz0n", "uselessmouth", "unclebjorn"
+        private static readonly string[] DefaultChannels = { "liz0n", "uselessmouth", "unclebjorn" };
         private static Dictionary<string, Bot> _bots;
         private static bool _exit = false;
         static void Main()
         {
+            ParticipantsStats.SetUpdateDelay(60);
             _bots = new Dictionary<string, Bot>();
             ConnectToChannel("defaultchannels");
             while (!_exit)
             {
                 string[] commandLine = Console.ReadLine().Split(' ');
-                string channel = "";
+                string parameter = "";
                 if (commandLine.Length > 1)
                 {
-                    channel = commandLine[1].ToLower();
+                    parameter = commandLine[1].ToLower();
                 }
                 string command = commandLine[0].ToLower();
                 switch (command)
                 {
                     case "connect":
-                        ConnectToChannel(channel);
+                        ConnectToChannel(parameter);
                         break;
                     case "disconnect":
-                        DisconnectFromChannel(channel);
+                        DisconnectFromChannel(parameter);
                         break;
                     case "printlog":
                         PrintLog();
@@ -37,6 +38,12 @@ namespace HepegaTwitchBot
                         break;
                     case "clear":
                         Console.Clear();
+                        break;
+                    case "repeat":
+                        RepeatAllowed();
+                        break;
+                    case "setupdatedelay":
+                        ParticipantsStats.SetUpdateDelay(Convert.ToInt32(parameter));
                         break;
                     case "exit":
                         _exit = true;
@@ -82,6 +89,14 @@ namespace HepegaTwitchBot
             foreach (var bot in _bots)
             {
                 bot.Value.PrintLog = !bot.Value.PrintLog;
+            }
+        }
+
+        private static void RepeatAllowed()
+        {
+            foreach (var bot in _bots)
+            {
+                bot.Value.RepeatAllowed = !bot.Value.RepeatAllowed;
             }
         }
     }

@@ -1,6 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Text;
+using System.Threading;
 using System.Timers;
 using TwitchLib.Client;
 using TwitchLib.Client.Enums;
@@ -14,10 +17,8 @@ namespace HepegaTwitchBot
 {
     public class Bot
     {
-        private int EASY_COMMAND = 3, MEDIUM_COMMAND = 5, HIGH_COMMAND = 7, SPAM_COMMAND = 1, AI_COMMAND = 4;
+        private int EASY_COMMAND = 3, MEDIUM_COMMAND = 5, HIGH_COMMAND = 12, SPAM_COMMAND = 1, AI_COMMAND = 4;
         TwitchClient client;
-        private HpgDocParser hpgDoc;
-        private List<string> items;
         private Anfisa anfisa;
         private HltbParser hltbParser;
         private GamefaqParser gamefaqParser;
@@ -26,17 +27,32 @@ namespace HepegaTwitchBot
         private string _channel;
         private int spamCount;
         private int easyCommand;
-        private int mediumCommand; 
+        private int mediumCommand;
         private int highCommand;
         private int spamCommand;
         private int aiCommand;
+        List<string> items;
         private bool spamAllowed = false;
         private int spamSymbolCount = 390;
         private bool aiAllowed = false;
         private Dictionary<string, int> messages;
         private List<string> bannedUsers;
+        string[] kanobu =
+        {
+            "кам",
+            "нож",
+            "бум"
+        };
+
+        string[] kanobuAnswer =
+        {
+            "камень",
+            "ножницы",
+            "бумага"
+        };
 
         public bool PrintLog { get; set; } = false;
+        public bool RepeatAllowed { get; set; } = false;
 
         public Bot(string channel)
         {
@@ -57,8 +73,6 @@ namespace HepegaTwitchBot
 
         private void InitializeVariables()
         {
-            hpgDoc = new HpgDocParser();
-            items = HpgItems.Items;
             hltbParser = new HltbParser();
             gamefaqParser = new GamefaqParser();
             coronaParser = new CoronavirusParser();
@@ -66,6 +80,7 @@ namespace HepegaTwitchBot
             anfisa = new Anfisa();
             random = new Random();
             bannedUsers = new List<string>();
+            items = HpgItems.Items;
         }
 
         private void InitializeBot()
@@ -172,20 +187,20 @@ namespace HepegaTwitchBot
 
         private void Client_OnMessageReceived(object sender, OnMessageReceivedArgs e)
         {
-            string message = e.ChatMessage.Message;
+            string message = e.ChatMessage.Message.ToLower();
             string channel = e.ChatMessage.Channel;
             string username = e.ChatMessage.Username;
             if (message.StartsWith("!команды") && easyCommand == 0)
             {
                 username = SendAMessageTo(username, ref message);
                 easyCommand = EASY_COMMAND;
-                client.SendMessage(channel, $"@{username} Список доступных команд: !топхпг, !хпгигра [ник_участника], !события [ник_участника], !шмотка [название_шмотки_или_события], !hltb [название_игры], !gamefaq [название_игры], !коронавирус [название_страны_на_английском], !github");
+                client.SendMessage(channel, $"@{username} Список доступных команд: !топхпг, !хпгигра [ник_участника], !события [ник_участника], !описание [шмотка_или_событие], !hltb [игра], !gamefaq [игра], !коронавирус [страна_на_английском] (кд 12 сек), !github");
             }
             else if (message.StartsWith("!топхпг") && mediumCommand == 0)
             {
                 username = SendAMessageTo(username, ref message);
                 mediumCommand = MEDIUM_COMMAND;
-                client.SendMessage(channel, $"@{username} {hpgDoc.GetLeaderboard()}");
+                client.SendMessage(channel, $"@{username} {ParticipantsStats.TopHpg}");
             }
             else if (message.StartsWith("!хпгигра") && mediumCommand == 0)
             {
@@ -195,7 +210,7 @@ namespace HepegaTwitchBot
             else if (message.StartsWith("!яебу") && !message.ContainsAlias(Aliases.ProhibitedAliases) && spamCommand == 0 && spamAllowed && !bannedUsers.Contains(username))
             {
                 spamCommand = SPAM_COMMAND;
-                message = message.Replace("!яебу", "");
+                message = e.ChatMessage.Message.Replace("!яебу", "");
                 SendYaEbuMessage(message, channel);
             }
             else if (message.StartsWith("!запретить спам") && (username == "pdvrr" || username == "martellx" || e.ChatMessage.UserType == UserType.Moderator))
@@ -238,13 +253,44 @@ namespace HepegaTwitchBot
             else if (message.StartsWith("!спам") && !message.ContainsAlias(Aliases.ProhibitedAliases) && spamCommand == 0 && spamAllowed && !bannedUsers.Contains(username))
             {
                 spamCommand = SPAM_COMMAND;
-                message = message.Replace("!спам ", "");
+                message = e.ChatMessage.Message.Replace("!спам ", "");
                 SendSpamMessage(message, channel);
             }
             else if (message.StartsWith("!события") && mediumCommand == 0)
             {
                 mediumCommand = MEDIUM_COMMAND;
                 SendEventMessage(username, message, channel);
+            }
+            else if (message.StartsWith("!канобу") && spamCommand ==  0 && spamAllowed)
+            {
+                spamCommand = SPAM_COMMAND;
+                message = message.Replace("!канобу ", "");
+                SendKanobuMessage(username, message, channel);
+            }
+            else if (message.StartsWith("!длина") && spamCommand ==  0 && spamAllowed)
+            {
+                spamCommand = SPAM_COMMAND;
+                username = SendAMessageTo(username, ref message);
+                client.SendMessage(channel, $"@{username} {random.Next(0, 100)} см");
+            }
+            else if (message.StartsWith("!количество") && spamCommand ==  0 && spamAllowed)
+            {
+                spamCommand = SPAM_COMMAND;
+                username = SendAMessageTo(username, ref message);
+                message = message.Replace("!количество ", "");
+                client.SendMessage(channel, $"@{username} {random.Next(10000)} {message}");
+            }
+            else if (message.StartsWith("!ban") && spamCommand ==  0 && spamAllowed)
+            {
+                spamCommand = SPAM_COMMAND;
+                username = SendAMessageTo(username, ref message);
+                client.SendMessage(channel, $"@{username} поздравляю, тебя забанили на {random.Next(100000)} секунд :)");
+            }
+            else if (message.StartsWith("!unban") && spamCommand ==  0 && spamAllowed)
+            {
+                spamCommand = SPAM_COMMAND;
+                username = SendAMessageTo(username, ref message);
+                client.SendMessage(channel, $"@{username} тебя разбанили. Можешь снова писать в чате :(");
             }
             else if (message.StartsWith("!github") && mediumCommand == 0)
             {
@@ -253,16 +299,16 @@ namespace HepegaTwitchBot
             }
             else if (message.Contains("@hepega_bot") && aiCommand == 0 && aiAllowed)
             {
-                if(message.ContainsAlias(Aliases.AnfisaAliases))
+                if (message.ContainsAlias(Aliases.AnfisaAliases))
                     return;
                 aiCommand = AI_COMMAND;
                 message = message.Replace("@hepega_bot ", "");
                 SendAnswerMessage(channel, message, username);
             }
-            else if (message.StartsWith("!шмотка") && highCommand == 0)
+            else if (message.StartsWith("!описание") && highCommand == 0)
             {
                 highCommand = HIGH_COMMAND;
-                message = message.Replace("!шмотка ", "").ToLower();
+                message = message.Replace("!описание ", "").ToLower();
                 SendItemMessage(message, channel, username);
             }
             else if (message.StartsWith("!hltb") && mediumCommand == 0)
@@ -283,9 +329,68 @@ namespace HepegaTwitchBot
                 message = message.Replace("!коронавирус ", "").ToLower();
                 SendCoronavirusMessage(username, message, channel);
             }
-            else if (message[0] != '@' &&  message[0] != '!' && !username.Contains("bot") && username != "streamelements" && !message.Contains("http") && !message.ToLower().Contains(_channel) && channel != "unclebjorn")
+            else if (message[0] != '@' && message[0] != '!' && !username.Contains("bot") && username != "streamelements" && !message.Contains("http") && !message.ToLower().Contains(_channel) && channel != "unclebjorn" && RepeatAllowed)
             {
-                ProcessRandomMessage(channel, message);
+                ProcessRandomMessage(channel, e.ChatMessage.Message);
+            }
+        }
+
+        private void SendKanobuMessage(string username, string message, string channel)
+        {
+            username = SendAMessageTo(username, ref message);
+            int botIndex = random.Next(0, 3); // ka no bu
+            int userIndex = -1;
+            for (int i = 0; i < kanobu.Length; i++)
+            {
+                if (message.Contains(kanobu[i]))
+                    userIndex = i;
+            }
+
+            bool win = false;
+            bool draw = false;
+            if (userIndex != -1)
+            {
+                string result = kanobuAnswer[botIndex];
+                switch (botIndex)
+                {
+                    case 0:
+                        if (userIndex == 1)
+                        {
+                            win = true;
+                        }
+                        break;
+                    case 1:
+                        if (userIndex == 2)
+                        {
+                            win = true;
+                        }
+                        break;
+                    case 2:
+                        if (userIndex == 0)
+                        {
+                            win = true;
+                        }
+                        break;
+                }
+                if (userIndex == botIndex)
+                {
+                    draw = true;
+                }
+
+                if (draw)
+                {
+                    result += ". Ничья. blushW";
+                }
+
+                if (win)
+                {
+                    result += ". Ты проиграл. Сосать + лежать EZ";
+                }
+                else if (win == false && !draw)
+                {
+                    result += ". Ты выиграл. SadCat";
+                }
+                client.SendMessage(channel, $"@{username} {result}");
             }
         }
 
@@ -302,14 +407,14 @@ namespace HepegaTwitchBot
                 messages[substring] = (messages[substring] + 1);
             }
 
-            if (messages[substring] > (channel == "uselessmouth" ? 5 : (random.Next(7,10))))
+            if (messages[substring] > (channel == "uselessmouth" ? 6 : (random.Next(7, 12))))
             {
                 client.SendMessage(channel, message);
                 messages[substring] = 0;
             }
         }
 
-        private async void SendCoronavirusMessage( string username, string message, string channel)
+        private async void SendCoronavirusMessage(string username, string message, string channel)
         {
             username = SendAMessageTo(username, ref message);
             client.SendMessage(channel, $"@{username} " + await coronaParser.GetCoronaStatsByCountry(message));
@@ -322,34 +427,46 @@ namespace HepegaTwitchBot
 
         private void SendYaEbuMessage(string message, string channel)
         {
-            string result = "";
-            while (result.Length <= spamSymbolCount)
+            StringBuilder builder = new StringBuilder(spamSymbolCount + 100);
+            while (builder.Length <= spamSymbolCount)
             {
-                result += $"polarExtreme Я ЕБУ {message} ";
+                builder.Append($"polarExtreme Я ЕБУ {message} ");
             }
 
-            if (result.Length >= spamSymbolCount)
+            string result;
+            if (builder.Length > spamSymbolCount)
             {
-                result = result.Substring(0, spamSymbolCount);
+                result = builder.ToString().Substring(0, spamSymbolCount);
             }
+            else
+            {
+                result = builder.ToString();
+            }
+
             client.SendMessage(channel, $"{result}");
         }
 
         private void SendSpamMessage(string message, string channel)
         {
+            StringBuilder builder = new StringBuilder(spamSymbolCount + 100);
             spamCount++;
-            string result = "";
-            while (result.Length <= spamSymbolCount)
+            while (builder.Length <= spamSymbolCount)
             {
-                result += $"{message} ";
+                builder.Append($"{message} ");
             }
 
-            if (result.Length >= spamSymbolCount)
+            string result;
+            if (builder.Length > spamSymbolCount)
             {
-                result = result.Substring(0, spamSymbolCount);
+                result = builder.ToString().Substring(0, spamSymbolCount);
+            }
+            else
+            {
+                result = builder.ToString();
             }
 
-            if (spamCount > 9)
+
+            if (spamCount > 10)
             {
                 client.SendMessage(channel, $"НЕ СПАМЬТЕ ПОЖАЛУСТО SadCat");
                 spamCount = 0;
@@ -363,18 +480,17 @@ namespace HepegaTwitchBot
         private void SendItemMessage(string message, string channel, string username)
         {
             username = SendAMessageTo(username, ref message);
-            if (items.Any(s => s.ToLower().Contains(message.ToLower())))
+            if (items.Any(s => s.ToLower().Contains(message)))
             {
-                
-                string result = items.Where(s => s.ToLower().Contains(message.ToLower())).OrderByDescending(s => s.IndexOf(message, StringComparison.Ordinal)).ToArray()[0];
+                string result = items.Where(s => s.ToLower().Substring(0,30).Contains(message)).OrderByDescending(s => s.IndexOf(message, StringComparison.Ordinal)).ToArray()[0];
                 if (result.Length > 500)
                 {
-                    
-                    client.SendMessage(channel, $"@{username} слишком длинное описание. Читай в доке.");
+                    result = result.Substring(0, 470);
+                    client.SendMessage(channel, $"{result} [Продолжение читай на сайте]");
                 }
                 else
                 {
-                    client.SendMessage(channel, $"@{username} {result}");
+                    client.SendMessage(channel, $"{result}");
                 }
             }
             else
@@ -387,15 +503,24 @@ namespace HepegaTwitchBot
         {
             username = SendAMessageTo(username, ref message);
             string result;
-            string nickname = HasAParicipantAlias(message);
-            if (nickname != "null")
+            ParticipantInfo participantInfo = HasAParicipantAlias(message);
+            string[] times;
+            if (participantInfo != null)
             {
-                ParticipantInfo participantInfo = hpgDoc.GetParticipantInfo(nickname);
-                result = await hltbParser.ParseGame(participantInfo.Game);
+                times = await hltbParser.ParseGame(participantInfo.Game);
             }
             else
             {
-                result = await hltbParser.ParseGame(message);
+                times = await hltbParser.ParseGame(message);
+            }
+
+            if (times != null)
+            {
+                result = $"Main story: {times[0].Replace("½", ".5")}. Main+Extra: {times[1].Replace("½", ".5")}";
+            }
+            else
+            {
+                result = "не удалось найти информацию об этой игре";
             }
 
             client.SendMessage(channel, $"@{username} {result}");
@@ -405,15 +530,24 @@ namespace HepegaTwitchBot
         {
             username = SendAMessageTo(username, ref message);
             string result;
-            string nickname = HasAParicipantAlias(message);
-            if (nickname != "null")
+            GamefaqStats stats;
+            ParticipantInfo participantInfo = HasAParicipantAlias(message);
+            if (participantInfo != null)
             {
-                ParticipantInfo participantInfo = hpgDoc.GetParticipantInfo(nickname);
-                result = await gamefaqParser.ParseGame(participantInfo.Game);
+                stats = await gamefaqParser.ParseGame(participantInfo.Game);
             }
             else
             {
-                result = await gamefaqParser.ParseGame(message);
+                stats = await gamefaqParser.ParseGame(message);
+            }
+
+            if (stats != null)
+            {
+                result = $"Length: {stats.Time}. Completed: {stats.Completed}. Rating: {stats.Rating}";
+            }
+            else
+            {
+                result = "не удалось найти информацию об этой игре";
             }
 
             client.SendMessage(channel, $"@{username} {result}");
@@ -423,11 +557,10 @@ namespace HepegaTwitchBot
         {
             username = SendAMessageTo(username, ref message);
             string result;
-            string nickname = HasAParicipantAlias(message);
-            if (nickname != "null")
+            ParticipantInfo participantInfo = HasAParicipantAlias(message);
+            if (participantInfo != null)
             {
-                ParticipantInfo participantInfo = hpgDoc.GetParticipantInfo(nickname);
-                result = $"[{participantInfo.Section}] {participantInfo.Game}. Номинальное GGP: {participantInfo.NominalGgp} [{hpgDoc.GetLastGameGgp(participantInfo)}]";
+                result = $"[{participantInfo.Section}] {participantInfo.Game}. Время прохождения: {participantInfo.HoursToComplete.Trim()}. Номинальное GGP: {participantInfo.NominalGgp} [{participantInfo.FinalGgp}]";
             }
             else
             {
@@ -440,10 +573,9 @@ namespace HepegaTwitchBot
         {
             username = SendAMessageTo(username, ref message);
             string result;
-            string nickname = HasAParicipantAlias(message);
-            if (nickname != "null")
+            ParticipantInfo participantInfo = HasAParicipantAlias(message);
+            if (participantInfo != null)
             {
-                ParticipantInfo participantInfo = hpgDoc.GetParticipantInfo(nickname);
                 result = participantInfo.Events;
             }
             else
@@ -453,36 +585,36 @@ namespace HepegaTwitchBot
             client.SendMessage(channel, $"@{username} {result}");
         }
 
-        private string HasAParicipantAlias(string message)
+        private ParticipantInfo HasAParicipantAlias(string message)
         {
-            string result;
+            ParticipantInfo result;
             if (message.ContainsAlias(Aliases.MelAliases))
             {
-                result = "Melharucos";
+                result = ParticipantsStats.ParticipantDictionary["mel"];
             }
             else if (message.ContainsAlias(Aliases.UzyaAliases))
             {
-                result = "UselessMouth";
+                result = ParticipantsStats.ParticipantDictionary["useless"];
             }
             else if (message.ContainsAlias(Aliases.LizonAliases))
             {
-                result = "liz0n";
+                result = ParticipantsStats.ParticipantDictionary["lizon"];
             }
             else if (message.ContainsAlias(Aliases.BjornAliases))
             {
-                result = "UncleBjorn";
+                result = ParticipantsStats.ParticipantDictionary["bjorn"];
             }
             else if (message.ContainsAlias(Aliases.LasqaAliases))
             {
-                result = "Lasqa";
+                result = ParticipantsStats.ParticipantDictionary["lasqa"];
             }
             else if (message.ContainsAlias(Aliases.FakerAliases))
             {
-                result = "Mistafaker";
+                result = ParticipantsStats.ParticipantDictionary["faker"];
             }
             else
             {
-                result = "null";
+                result = null;
             }
 
             return result;

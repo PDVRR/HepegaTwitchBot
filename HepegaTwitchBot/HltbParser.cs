@@ -20,9 +20,8 @@ namespace HepegaTwitchBot
             client.DefaultRequestHeaders.Add("User-Agent", "Friendly C# Bot");
         }
 
-        public async Task<string> ParseGame(string game)
+        public async Task<string[]> ParseGame(string game)
         {
-            string result = default;
             char[] arr = game.Where(c => (char.IsLetterOrDigit(c) || char.IsWhiteSpace(c) || c == '-')).ToArray();
             game = new string(arr);
             List<KeyValuePair<string, string>> formData = new List<KeyValuePair<string, string>>
@@ -46,15 +45,16 @@ namespace HepegaTwitchBot
                 if (items.Count != 0)
                 {
                     string[] times = items.Select(item => item.TextContent).ToArray();
-                    result = $"Main story: {times[0].Replace("½",".5")}. Main+Extra: {times[1].Replace("½",".5")}";
+                    string[] result = {times[0].Replace("½", ".5"), times[1].Replace("½", ".5")};
+                    return result;
                 }
                 else
                 {
-                    result = "не удалось найти информацию об этой игре.";
+                    return null;
                 }
             }
 
-            return result;
+            return null;
         }
     }
 }
